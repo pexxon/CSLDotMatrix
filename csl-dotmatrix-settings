@@ -1,0 +1,3 @@
+#!/bin/sh
+export PYTHONPATH="$HOME/.local/lib${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m csl_dotmatrix.gui "$@"

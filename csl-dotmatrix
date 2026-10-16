@@ -1,0 +1,3 @@
+#!/usr/bin/env python3
+from csl_dotmatrix.__main__ import cli
+raise SystemExit(cli())

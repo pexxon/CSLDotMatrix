@@ -1,0 +1,3 @@
+# CSL DotMatrix controller VID/PID. Grants local active desktop user access.
+# This covers the device's hidraw interfaces, including its keyboard-compatible one.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1a2c", ATTRS{idProduct}=="434d", TAG+="uaccess"
