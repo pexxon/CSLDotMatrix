@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=CSL DotMatrix
+Comment=Start the CSL temperature display and tray controls
+Exec=csl-dotmatrix-session
+Icon=utilities-system-monitor
+Terminal=false
+Categories=Utility;
+X-GNOME-Autostart-enabled=true

@@ -9,7 +9,7 @@ class ProtocolTest(unittest.TestCase):
         self.assertEqual(packet[6:], bytes(58))
 
     def test_limits(self):
-        for n in (-1, 100, 101):
+        for n in (-1, 100, 101, True, False, 44.0, '44'):
             with self.assertRaises(ValueError):
                 encode_temperature(n)
 

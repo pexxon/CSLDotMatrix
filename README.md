@@ -1,6 +1,76 @@
-# CSL DotMatrix Linux v0.5.0
+# CSL DotMatrix Linux v0.6.0
 
 A native Qt application and Linux HID temperature controller for the **CSL DotMatrix aRGB 240 mm AIO**. Unofficial community project, not affiliated with CSL.
+
+## Download an Arch package
+
+Once a release is published, download its `.pkg.tar.zst` file from
+[GitHub Releases](https://github.com/pexxon/CSLDotMatrix/releases), then run:
+
+```sh
+sudo pacman -S --needed python-hidapi pyside6
+sudo pacman -U ./csldotmatrix-*.pkg.tar.zst
+csl-dotmatrix-session
+```
+
+If migrating from `./install.sh`, run `./uninstall.sh` first to remove the old
+home-directory service; settings are preserved. Existing users enable the
+display service through Settings. A fresh installation starts with CPU/Celsius
+defaults and opens the tray, with automatic startup at future desktop logins.
+
+GitHub Actions tests each push/PR and builds a downloadable package artifact.
+Pushing a matching version tag also creates a release with the package, source
+archive, and checksums. See [build and release instructions](docs/releases.md).
+
+## Arch Linux / AUR (prepared for publication)
+
+The `csldotmatrix` package is prepared in `packaging/aur/`; it is not yet
+published. Once v0.6.0 and the AUR package have been published, install with:
+
+```sh
+yay -S csldotmatrix
+```
+
+The package includes Python/hidapi/Qt dependencies, the udev permission rule,
+application menu entries, a systemd **user** service, and desktop autostart.
+At the next graphical login, a fresh installation enables the display service
+with CPU/Celsius defaults and opens the tray. To start immediately after
+installation, launch **CSL DotMatrix** from the application menu, or run
+`csl-dotmatrix-session`. This requires an active local desktop session; it does
+not start the display before login. NVIDIA temperature reads additionally need
+`nvidia-utils` and a working NVIDIA driver.
+
+Existing configuration is preserved and does not automatically enable the
+service. Use **CSL DotMatrix Settings** to enable it. To disable tray autostart,
+create `~/.config/autostart/csl-dotmatrix.desktop` containing:
+
+```ini
+[Desktop Entry]
+Type=Application
+Name=CSL DotMatrix
+Hidden=true
+```
+
+To migrate from `./install.sh`, run `./uninstall.sh` **before** installing the
+package. This removes the old home-directory service that would override the
+packaged service, and preserves settings. Re-enable the service in Settings
+after migration. Remove an old manually installed
+`/etc/udev/rules.d/70-csl-dotmatrix.rules` if you want to use only the packaged
+rule. Remove packaged installations with `yay -Rns csldotmatrix`, rather than
+the manual uninstaller. User settings and per-user systemd enablement links
+remain in your home directory; stop the service and quit the tray before removal.
+
+The `csldotmatrix` and `csl-dotmatrix` commands both run the CLI.
+See [AUR release instructions](packaging/aur/README.md) for building and publishing.
+
+## What's new in v0.6.0 (unreleased)
+
+- System-wide Arch packaging, with a reproducible source asset and SHA-256.
+- GitHub Actions tests, Arch package artifacts, and automatic tagged releases.
+- Stable hwmon/PCI sensor selectors and a detected-sensor picker in Settings.
+- Warnings when automatic hwmon GPU selection has multiple devices to choose from.
+- Offline Windows/PDB and HID descriptor analysis tools, with documented
+  [protocol findings and pixel-control research](docs/reverse-engineering.md).
 
 ## What's new in v0.5.0
 
@@ -34,7 +104,7 @@ sudo rm /etc/udev/rules.d/70-csl-dotmatrix.rules
 sudo udevadm control --reload-rules
 ```
 
-Do not run this uninstaller against a future AUR/pacman installation; use `pacman -Rns csl-dotmatrix-linux` for packaged releases.
+Do not run this uninstaller against an AUR/pacman installation; use `sudo pacman -Rns csldotmatrix` for packaged releases.
 
 ---
 
@@ -92,12 +162,12 @@ On systems without a packaged PySide6, install it in a Python virtual environmen
 ## Installation
 
 ```sh
-git clone https://github.com/YOUR-USERNAME/csl-dotmatrix-linux.git
-cd csl-dotmatrix-linux
+git clone https://github.com/pexxon/CSLDotMatrix.git
+cd CSLDotMatrix
 ./install.sh
 ```
 
-Replace `YOUR-USERNAME` after publishing the repository. The installer copies the CLI, GUI and tray launcher into `~/.local/bin/`, the Python package into `~/.local/lib/`, desktop entries into `~/.local/share/applications/`, a tray autostart entry into `~/.config/autostart/`, and a user service into `~/.config/systemd/user/`. It does not require root, install packages, or change device permissions.
+The manual installer copies the CLI, GUI and tray launcher into `~/.local/bin/`, the Python package into `~/.local/lib/`, desktop entries into `~/.local/share/applications/`, a tray autostart entry into `~/.config/autostart/`, and a user service into `~/.config/systemd/user/`. It does not require root, install packages, or change device permissions. Do not combine manual and packaged installations.
 
 ### Allow display access without root
 
@@ -134,7 +204,7 @@ The window lets you change:
 - Temperature source: **CPU** or **GPU**
 - Unit: **°C** or **°F** (numeric conversion, not a C/F letter on the device)
 - Update interval (0.2–9 seconds; default 1)
-- Optional explicit Linux `hwmon` sensor path
+- A detected sensor picker or an explicit stable selector / Linux `hwmon` path
 - **Start automatically at Linux login**
 
 Click **Save and apply** to write `~/.config/csl-dotmatrix/config.json` (or `$XDG_CONFIG_HOME/csl-dotmatrix/config.json`), then enable/restart or disable/stop the background service. **Do not run a separate CLI sender alongside the service.** The GUI does not write arbitrary HID bytes or control the pump.
@@ -175,6 +245,8 @@ csl-dotmatrix --list-sensors
 csl-dotmatrix --source cpu --unit C
 csl-dotmatrix --source gpu --unit F
 csl-dotmatrix --sensor /sys/class/hwmon/hwmon4/temp1_input
+csl-dotmatrix --sensor 'pci:0000:03:00.0/edge'
+csl-dotmatrix --sensor 'hwmon:k10temp/Tctl'
 csl-dotmatrix --dry-run --once
 ```
 
@@ -189,7 +261,7 @@ csl-dotmatrix --source gpu --unit C
 systemctl --user start csl-dotmatrix.service
 ```
 
-**Sensor selection:** CPU selection prefers `k10temp` or `coretemp`; GPU selection uses `nvidia-smi` when available, otherwise an `amdgpu` or other recognized `hwmon` sensor. On multi-GPU systems, automatic GPU selection may not match the GPU you intended. Inspect `--list-sensors` and use an explicit sensor override if necessary. The `hwmonN` number can change at boot.
+**Sensor selection:** CPU selection prefers `k10temp` or `coretemp`; GPU selection uses `nvidia-smi` when available, otherwise an `amdgpu` or other recognized `hwmon` sensor. On multi-GPU systems, automatic GPU selection may not match the GPU you intended; multiple hwmon GPU devices produce a warning. Inspect `--list-sensors` or Settings' detected-sensor picker and choose a stable `pci:ADDRESS/LABEL` selector to identify a specific GPU across hwmon renumbering. `hwmon:CHIP/LABEL` also works when that combination is unique. Selectors fail explicitly if missing or ambiguous. Raw sensor paths remain supported; their `hwmonN` number can change at boot. PCI addresses can also change after hardware/topology changes. Explicit selectors take precedence over `nvidia-smi`.
 
 ## Reverse-engineered protocol
 
@@ -207,7 +279,15 @@ Captured on Windows and successfully replayed on Linux:
 
 Example: `07 FF FF 00 04 04` displays `44°`. Transmission uses `send_feature_report` on HID interface 1, usage page `0xff01`. The original USB control request was `SET_REPORT` (`bmRequestType=0x21`, `bRequest=0x09`, `wValue=0x0307`, `wIndex=1`). A periodic update keeps the screen on.
 
-Other observed reports (`07 FF FF 01 01 01` and `07 FF FF 01 01 03`) are **not sent** because their meaning has not been verified. No arbitrary letters, individual dot-matrix pixels, animations, firmware updates, pump controls, or explicit CPU/GPU labels are supported.
+Static analysis of the matching Windows EXE/PDB now shows byte 3 being filled
+with a hundreds digit: the previously unexplained `07 FF FF 01 01 01` and
+`07 FF FF 01 01 03` prefixes fit 111 and 113. This is evidence from software;
+three-digit rendering remains unverified on the physical display and these
+packets are not sent by the Linux controller. See the
+[analysis report](docs/reverse-engineering.md) for addresses, hashes, report
+length details, and reproducible inspection commands. No arbitrary letters,
+individual dot-matrix pixels, animations, firmware updates, pump controls, or
+explicit CPU/GPU labels are supported.
 
 ## Troubleshooting
 
@@ -215,10 +295,10 @@ Other observed reports (`07 FF FF 01 01 01` and `07 FF FF 01 01 03`) are **not s
 | --- | --- |
 | `HID error: open failed` | Install/reload udev rule; inspect `getfacl` for the selected `/dev/hidrawX`; log in again |
 | Cooler not found | Run `lsusb`; verify `1a2c:434d` and the physical USB connection |
-| GUI won't open | Install `tk`/`python3-tk`; use a graphical Linux session |
+| GUI won't open | Install PySide6 (`pyside6` on Arch); use a graphical Linux session |
 | GUI saves but display stays off | Run `systemctl --user status csl-dotmatrix.service` and check `journalctl --user -u csl-dotmatrix.service -n 50` |
 | Wrong temperature | Run `csl-dotmatrix --list-sensors`; select the correct sensor |
-| Fahrenheit shows 99° repeatedly | Actual value may be greater than 99; the display's three-digit protocol is unknown |
+| Fahrenheit shows 99° repeatedly | Actual value may exceed 99; the Windows hundreds-digit format has not yet been physically verified |
 | Two processes contend for the display | Stop the service before manually running the CLI |
 
 ## Development and contributions

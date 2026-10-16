@@ -8,9 +8,9 @@ REPORT_LENGTH = 64
 
 def encode_temperature(value: int) -> bytes:
     """Encode a *displayed* two-digit integer; only 00..99 is verified."""
-    if not isinstance(value, int) or not 0 <= value <= 99:
+    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 99:
         raise ValueError("Display protocol only supports verified values 00..99")
-    return bytes([0x07, 0xFF, 0xFF, 0x00, value // 10, value % 10]) + bytes(58)
+    return bytes([0x07, 0xFF, 0xFF, 0x00, value // 10, value % 10]) + bytes(REPORT_LENGTH - 6)
 
 
 def find_device(hid):

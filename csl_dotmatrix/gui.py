@@ -2,6 +2,7 @@
 import subprocess
 import sys
 from .config import load_settings, save_settings
+from .sensors import all_sensors, score_cpu, score_gpu
 
 SERVICE = 'csl-dotmatrix.service'
 
@@ -20,7 +21,7 @@ def main():
     try:
         from PySide6.QtCore import Qt
         from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
-            QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QMessageBox,
+            QFormLayout, QHBoxLayout, QLabel, QLineEdit, QMessageBox,
             QPushButton, QVBoxLayout, QWidget)
     except ImportError:
         print('PySide6 is required for the Qt settings app. See README.md.', file=sys.stderr)
@@ -33,7 +34,7 @@ def main():
     class SettingsWindow(QWidget):
         def __init__(self):
             super().__init__()
-            from PySide6.QtWidgets import QGroupBox, QGridLayout, QSizePolicy
+            from PySide6.QtWidgets import QGroupBox
             self.setWindowTitle('CSL DotMatrix · Settings')
             self.setMinimumSize(540, 440)
             self.setObjectName('settingsWindow')
@@ -84,7 +85,29 @@ def main():
             form.addRow('Refresh every', self.interval)
             self.sensor = QLineEdit(settings['sensor'])
             self.sensor.setPlaceholderText('Automatic detection (recommended)')
-            form.addRow('Sensor path (optional)', self.sensor)
+            self.sensor.setToolTip('A stable sensor selector or a Linux temp*_input path')
+            form.addRow('Sensor override', self.sensor)
+            self.sensor_choices = QComboBox()
+            self.sensor_choices.setToolTip('Select a detected sensor; PCI addresses distinguish multiple GPUs')
+            form.addRow('Detected sensors', self.sensor_choices)
+
+            def refresh_sensors():
+                self.sensor_choices.blockSignals(True)
+                self.sensor_choices.clear()
+                self.sensor_choices.addItem('Automatic detection', '')
+                score = score_cpu if self.source.currentData() == 'cpu' else score_gpu
+                for sensor in all_sensors():
+                    if score(sensor) >= 0:
+                        identity = f' · {sensor.device}' if sensor.device else ''
+                        self.sensor_choices.addItem(f'{sensor.name} · {sensor.label}{identity}', sensor.selector)
+                index = self.sensor_choices.findData(self.sensor.text())
+                self.sensor_choices.setCurrentIndex(max(0, index))
+                self.sensor_choices.blockSignals(False)
+
+            refresh_sensors()
+            self.source.currentIndexChanged.connect(refresh_sensors)
+            self.sensor_choices.activated.connect(
+                lambda _index: self.sensor.setText(self.sensor_choices.currentData()))
             root.addWidget(group)
 
             startup = QGroupBox('Startup')
@@ -112,7 +135,7 @@ def main():
 
         def apply(self):
             try:
-                path = save_settings({
+                save_settings({
                     'source': self.source.currentData(), 'unit': self.unit.currentData(),
                     'interval': self.interval.value(), 'sensor': self.sensor.text().strip(),
                 })

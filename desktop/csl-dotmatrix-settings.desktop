@@ -2,6 +2,7 @@
 Type=Application
 Name=CSL DotMatrix Settings
 Comment=Configure CSL AIO temperature display
-Exec=sh -c 'exec "$HOME/.local/bin/csl-dotmatrix-settings"'
+Exec=csl-dotmatrix-settings
+Icon=utilities-system-monitor
 Terminal=false
 Categories=Settings;HardwareSettings;

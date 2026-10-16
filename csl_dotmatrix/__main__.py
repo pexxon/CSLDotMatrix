@@ -18,7 +18,8 @@ def cli(argv=None):
     parser = argparse.ArgumentParser(description='Linux controller for CSL DotMatrix AIO')
     parser.add_argument('--source', choices=('cpu', 'gpu'), default=settings['source'])
     parser.add_argument('--unit', choices=('C', 'F'), default=settings['unit'], type=str.upper)
-    parser.add_argument('--sensor', metavar='PATH', default=settings['sensor'] or None, help='Explicit /sys/class/hwmon/.../temp*_input')
+    parser.add_argument('--sensor', metavar='SELECTOR', default=settings['sensor'] or None,
+                        help='Sensor path, pci:ADDRESS/LABEL, or hwmon:CHIP/LABEL; see --list-sensors')
     parser.add_argument('--interval', type=float, default=settings['interval'], help='Seconds between updates (default: 1)')
     parser.add_argument('--list-sensors', action='store_true')
     parser.add_argument('--once', action='store_true', help='Send once and exit (display times out afterward)')
@@ -28,7 +29,7 @@ def cli(argv=None):
     if args.list_sensors:
         for s in all_sensors():
             try:
-                print(f'{s.name:14} {s.label:22} {s.read_c():6.1f}°C  {s.path}')
+                print(f'{s.name:14} {s.label:22} {s.read_c():6.1f}°C  {s.path}  [{s.selector}]')
             except (OSError, ValueError):
                 pass
         return 0

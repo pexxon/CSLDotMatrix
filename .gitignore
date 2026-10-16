@@ -2,3 +2,14 @@ __pycache__/
 *.py[cod]
 .venv/
 .pytest_cache/
+build/
+dist/
+*.egg-info/
+packaging/aur/src/
+packaging/aur/pkg/
+packaging/aur/*.tar.gz
+*.pkg.tar.*
+# Local proprietary reference files and USB captures are not release sources.
+/CSL DotMatrix Digital/
+*.pcap
+*.pcapng

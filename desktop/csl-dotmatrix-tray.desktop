@@ -2,8 +2,8 @@
 Type=Application
 Name=CSL DotMatrix Tray
 Comment=CPU/GPU and Celsius/Fahrenheit controls for CSL DotMatrix
-Exec=sh -c 'exec "$HOME/.local/bin/csl-dotmatrix-tray"'
+Exec=csl-dotmatrix-tray
 Icon=utilities-system-monitor
 Terminal=false
-Categories=Utility;Settings;
+Categories=Utility;
 X-GNOME-Autostart-enabled=true

@@ -1,5 +1,9 @@
 #!/bin/sh
 set -eu
+if [ -f /usr/lib/systemd/user/csl-dotmatrix.service ]; then
+    printf 'A system-wide installation exists. Upgrade it with pacman instead of install.sh.\n' >&2
+    exit 1
+fi
 PROJECT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 BIN="$HOME/.local/bin"
 APP="$HOME/.local/share/applications"
@@ -39,6 +43,6 @@ systemctl --user daemon-reload 2>/dev/null || true
 if systemctl --user is-active --quiet csl-dotmatrix.service 2>/dev/null; then
     systemctl --user restart csl-dotmatrix.service
 fi
-printf '\nInstalled CSL DotMatrix v0.5.0.\n'
+printf '\nInstalled CSL DotMatrix v0.6.0.\n'
 printf 'Tray: log out/in, or run %s/csl-dotmatrix-tray now.\n' "$BIN"
 printf 'To remove: ./uninstall.sh (udev rule removal is optional/manual).\n'

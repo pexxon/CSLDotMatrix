@@ -5,6 +5,10 @@ BIN="$HOME/.local/bin"
 APP="$HOME/.local/share/applications"
 AUTO="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
 UNIT="$HOME/.config/systemd/user/csl-dotmatrix.service"
+if [ ! -f "$UNIT" ] && [ -f /usr/lib/systemd/user/csl-dotmatrix.service ]; then
+    printf 'A packaged installation exists. Remove it with sudo pacman -Rns csldotmatrix.\n' >&2
+    exit 1
+fi
 systemctl --user disable --now csl-dotmatrix.service 2>/dev/null || true
 # Close only this user's tray launched from our installed application.
 # Old tray can be quit from its menu; don't indiscriminately kill Python processes.

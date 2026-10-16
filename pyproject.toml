@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "csldotmatrix"
+version = "0.6.0"
+description = "Linux temperature display controller for the CSL DotMatrix AIO"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+
+[project.scripts]
+csldotmatrix = "csl_dotmatrix.__main__:cli"
+csl-dotmatrix = "csl_dotmatrix.__main__:cli"
+csl-dotmatrix-settings = "csl_dotmatrix.gui:main"
+csl-dotmatrix-tray = "csl_dotmatrix.tray:run"
+csl-dotmatrix-session = "csl_dotmatrix.session:main"
+
+[tool.setuptools]
+packages = ["csl_dotmatrix"]

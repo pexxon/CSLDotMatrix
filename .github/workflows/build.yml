@@ -1,0 +1,120 @@
+name: Test, package, and release
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python }} tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.9', '3.14']
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run hardware-free tests
+        run: PYTHONPATH=. python -m unittest discover -s tests -v
+      - name: Check CLI and shell syntax
+        run: |
+          PYTHONPATH=. python -m csl_dotmatrix --help
+          sh -n install.sh uninstall.sh csl-dotmatrix csl-dotmatrix-settings csl-dotmatrix-tray
+          bash -n tools/ci_build_arch.sh
+
+  package:
+    name: Build Arch Linux package
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: archlinux:base-devel
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install build and runtime dependencies
+        run: |
+          pacman -Syu --noconfirm --needed git python python-build python-installer \
+            python-setuptools python-hidapi pyside6 namcap desktop-file-utils actionlint shellcheck
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Build, lint, and smoke-test as an unprivileged user
+        env:
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+        run: |
+          actionlint .github/workflows/build.yml
+          useradd --create-home builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          runuser -u builder -- bash tools/ci_build_arch.sh
+      - name: Save package and release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: csldotmatrix-arch-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
+          include-hidden-files: true
+          path: |
+            dist/*.pkg.tar.zst
+            dist/*.tar.gz
+            dist/PKGBUILD
+            dist/.SRCINFO
+            dist/SHA256SUMS
+            dist/namcap.log
+
+  release:
+    name: Publish tagged GitHub release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: csldotmatrix-arch-${{ github.sha }}
+          path: release-assets
+      - name: Verify assets and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        working-directory: release-assets
+        run: |
+          sha256sum --check SHA256SUMS
+          cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+          Unofficial Linux controller for the CSL DotMatrix AIO display.
+
+          Download the `.pkg.tar.zst` asset below. On Arch Linux or an Arch-based distribution:
+
+          ```sh
+          sudo pacman -S --needed python-hidapi pyside6
+          sudo pacman -U ./csldotmatrix-*.pkg.tar.zst
+          csl-dotmatrix-session
+          ```
+
+          CPU/Celsius defaults and the tray start at the next graphical login on a fresh installation.
+          Existing users can enable the service in CSL DotMatrix Settings.
+          If migrating from a manual installation, run its `./uninstall.sh` before installing this package.
+          NVIDIA GPU temperatures additionally require `nvidia-utils` and a working driver.
+
+          The source asset, PKGBUILD, .SRCINFO, checksums, and namcap report are attached for review.
+          This release does not publish anything to AUR. Automated checks do not verify physical cooler behavior.
+          NOTES
+          gh release create "$RELEASE_TAG" --verify-tag --title "CSL DotMatrix $RELEASE_TAG" \
+            --generate-notes --notes-file "$RUNNER_TEMP/release-notes.md" \
+            ./*.pkg.tar.zst ./*.tar.gz PKGBUILD .SRCINFO SHA256SUMS namcap.log

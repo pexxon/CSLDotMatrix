@@ -1,0 +1,39 @@
+# Release packaging: publish the matching upstream tag before submitting to AUR.
+pkgname=csldotmatrix
+pkgver=0.6.0
+pkgrel=1
+pkgdesc='Temperature display controller and Qt tray for the CSL DotMatrix AIO'
+arch=('any')
+url='https://github.com/pexxon/CSLDotMatrix'
+license=('MIT')
+depends=('python' 'python-hidapi' 'pyside6' 'systemd')
+makedepends=('python-build' 'python-installer' 'python-setuptools>=77')
+optdepends=('nvidia-utils: NVIDIA GPU temperature source')
+source=("$pkgname-$pkgver.tar.gz::$url/releases/download/v$pkgver/$pkgname-$pkgver.tar.gz")
+sha256sums=('2525a1c091c5d156f88132e10a0ecf892233582b0e57581ae0106c0eaebf86c5')
+
+build() {
+    cd "CSLDotMatrix-$pkgver"
+    python -m build --wheel --no-isolation
+}
+
+check() {
+    cd "CSLDotMatrix-$pkgver"
+    PYTHONPATH=. python -m unittest discover -s tests -v
+}
+
+package() {
+    cd "CSLDotMatrix-$pkgver"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+    install -Dm644 systemd/csl-dotmatrix-system.service \
+        "$pkgdir/usr/lib/systemd/user/csl-dotmatrix.service"
+    install -Dm644 udev/70-csl-dotmatrix.rules \
+        "$pkgdir/usr/lib/udev/rules.d/70-csl-dotmatrix.rules"
+    for entry in desktop/*.desktop; do
+        install -Dm644 "$entry" "$pkgdir/usr/share/applications/${entry##*/}"
+    done
+    install -Dm644 desktop/csl-dotmatrix-session.desktop \
+        "$pkgdir/etc/xdg/autostart/csl-dotmatrix.desktop"
+}

@@ -1,0 +1,19 @@
+pkgbase = csldotmatrix
+	pkgdesc = Temperature display controller and Qt tray for the CSL DotMatrix AIO
+	pkgver = 0.6.0
+	pkgrel = 1
+	url = https://github.com/pexxon/CSLDotMatrix
+	arch = any
+	license = MIT
+	makedepends = python-build
+	makedepends = python-installer
+	makedepends = python-setuptools>=77
+	depends = python
+	depends = python-hidapi
+	depends = pyside6
+	depends = systemd
+	optdepends = nvidia-utils: NVIDIA GPU temperature source
+	source = csldotmatrix-0.6.0.tar.gz::https://github.com/pexxon/CSLDotMatrix/releases/download/v0.6.0/csldotmatrix-0.6.0.tar.gz
+	sha256sums = 2525a1c091c5d156f88132e10a0ecf892233582b0e57581ae0106c0eaebf86c5
+
+pkgname = csldotmatrix
